@@ -4,7 +4,7 @@ from SemEvalEight import config
 import numpy as np
 
 # Sourced from code provided in Task (generateData), with some aspects modified
-def generate_subtask1_data(file_indices, tokenized_folder=None):
+def generate_subtask1_data(file_indices, tokenized_folder=None, verbose=False):
     """
     Generator form load_subtask1_data
     """
@@ -21,7 +21,8 @@ def generate_subtask1_data(file_indices, tokenized_folder=None):
     for i, fileName in enumerate(files):
         if i not in file_indices:
             continue
-        print("Loading %s" % fileName)
+        if verbose:
+            print("Loading %s" % fileName)
 
         tk_path = path.join(tokenized_folder, fileName)
         with open(tk_path, 'r', encoding='utf-8') as f:
@@ -40,7 +41,7 @@ def generate_subtask1_data(file_indices, tokenized_folder=None):
                         relevance = 1
 
 def generate_subtask2_data(file_indices, tokenized_folder=None,
-                           target_encoding_method='basic'):
+                           target_encoding_method='basic', verbose=False):
     if tokenized_folder is None:
         tokenized_folder = config.tokenized_dir
     print("Loading tokens from file: %s" % tokenized_folder)
@@ -81,7 +82,8 @@ def generate_subtask2_data(file_indices, tokenized_folder=None,
     for i, fileName in enumerate(files):
         if i not in file_indices:
             continue
-        print("Loading %s" % fileName)
+        if verbose:
+            print("Loading %s" % fileName)
 
         tk_path = path.join(tokenized_folder, fileName)
 
@@ -131,8 +133,15 @@ def load_subtask1_data(file_indices, tokenized_folder=None):
     for x, y in generate_subtask1_data(file_indices, tokenized_folder=tokenized_folder):
         X.append(x)
         Y.append(y)
-    return X, Y
+    return np.array(X), np.array(Y)
 
+def load_subtask1_brown_auto_labeled(top_n=10):
+    auto_label_p =  'top_%d_auto_labeled_from_brown_external_att.txt' % top_n
+    p = path.join(config.ext_data_dir, auto_label_p)
+
+    X_auto = open(p, encoding='utf-8').readlines()
+    Y_auto = np.ones(len(X_auto))
+    return X_auto, Y_auto
 
 def load_stucco_annotations(full_corpus_path=None):
     if full_corpus_path is None:
