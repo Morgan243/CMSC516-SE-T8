@@ -9,6 +9,6 @@ def tokenize_texts(texts, nb_words=1000,
     tokenizer.fit_on_texts(texts=texts)
     sequences = tokenizer.texts_to_sequences(texts=texts)
 
-    if pad:
-        sequences = pad_sequences(sequences, maxlen=nb_words)
+    #if pad:
+    #    sequences = pad_sequences(sequences, maxlen=nb_words)
     return tokenizer, sequences
