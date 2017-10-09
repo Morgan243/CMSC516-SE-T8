@@ -31,7 +31,9 @@ def run(model_type='dt', n_jobs=2):
     X_test, Y_test = load_subtask1_data(file_ixs[20:],
                               tokenized_folder=tokenized_dir)
 
-    cvec = CountVectorizer(ngram_range=(1, 2))
+    cvec = CountVectorizer(ngram_range=(1, 2),
+                           stop_words='english',
+                           min_df=3)
 
     cvec_X = cvec.fit_transform(X)
     cvec_X = cvec_X.toarray()
@@ -45,24 +47,24 @@ def run(model_type='dt', n_jobs=2):
 
     if model_type == 'dt':
         cv_m = grid_search(DecisionTreeClassifier(),
-                           param_grid=dict(max_depth=range(2, 20, 2),
-                                           min_samples_split=range(1, 20, 2)),
+                           param_grid=dict(max_depth=range(2, 32, 3),
+                                           min_samples_split=range(2, 40, 3)),
                            **cv_kwargs)
 
     elif model_type == 'gb':
         cv_m = grid_search(GradientBoostingClassifier(),
-                           param_grid=dict(learning_rate=np.arange(0.1, 1.5, 0.2),
-                                           n_estimators=range(25, 126, 25)),
+                           param_grid=dict(learning_rate=np.arange(0.1, 1.1, 0.1),
+                                           n_estimators=range(25, 226, 25)),
                            **cv_kwargs)
     elif model_type == 'rf':
         cv_m = grid_search(RandomForestClassifier(),
-                           param_grid=dict(max_depth=range(2, 25, 3),
-                                           min_samples_split=range(2, 25, 3),
-                                           n_estimators=range(25, 126, 25)),
+                           param_grid=dict(max_depth=range(2, 35, 4),
+                                           min_samples_split=range(2, 45, 4),
+                                           n_estimators=range(25, 226, 25)),
                            **cv_kwargs)
     elif model_type == 'nb':
         cv_m = grid_search(BernoulliNB(),
-                           param_grid=dict(alph=np.arange(.1,2.0, .1)),
+                           param_grid=dict(alpha=np.arange(.1, 2.0, .1)),
                                             **cv_kwargs)
     else:
         raise ValueError("No model type %s" % model_type)
@@ -81,8 +83,10 @@ def run(model_type='dt', n_jobs=2):
 
 if __name__ == """__main__""":
     mt = [
-        'rf',
-        'gb'
+        #'nb',
+        'dt',
+        #'rf',
+        #'gb'
     ]
-    metrics = run(model_type=mt, n_jobs=6)
+    metrics = run(model_type=mt, n_jobs=3)
 
