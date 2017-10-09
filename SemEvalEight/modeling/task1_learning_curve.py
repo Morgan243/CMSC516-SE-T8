@@ -1,20 +1,24 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import time
+
+from sklearn.utils import shuffle
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.datasets import load_digits
 from sklearn.model_selection import learning_curve
 from sklearn.model_selection import ShuffleSplit
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.ensemble import GradientBoostingClassifier
 
 from SemEvalEight.data_prep.loaders import load_subtask1_data
 from SemEvalEight.config import tokenized_dir
 from SemEvalEight import utils
 
-def learning_curve_dt(X, y, X_test, y_test):
+def calculate_learning_curve(classifier, X, y, X_test, y_test):
     """
 
+    :param classifier: Object type that implements the "fit" and "predict" methods.
     :param X: Training dataset.
     :param y: Target relative to X.
     :param X_test: Testing dataset.
@@ -22,51 +26,60 @@ def learning_curve_dt(X, y, X_test, y_test):
     :return: Dictionary where key = total training samples, and value = metrics from test.
     """
 
-    dt = DecisionTreeClassifier()
     results = dict()
     X_length = len(X)
-    X_length_inc = X_length // 10
-    X_length_count = X_length_inc
+    X_length_inc = X_length // 100
+    number_samples = X_length_inc
 
-    for x in range(0, 10):
+    for x in range(0, 100):
         print("This is the %s iteration" % str(x + 1))
-        print("Total training samples is %s" % str(X_length_count))
+        print("Total training samples is %s" % str(number_samples))
 
-        X_tmp = X[0:X_length_count]
-        y_tmp = y[0:X_length_count]
+        X, y = shuffle(X, y, random_state=0)
 
-        dt.fit(X_tmp, y_tmp)
-        y_predicted = dt.predict(X_test)
+        partial_results = []
+        for r in range(0, 3):
+            #X_tmp, y_tmp = resample(X, y, n_samples=X_length_count, random_state=0)
 
-        metrics = utils.binary_classification_metrics(y_test, y_predicted)
-        print(metrics)
+            idx = np.random.choice(np.arange(len(X)), number_samples, replace=False)
+            X_tmp = X[idx,:]
+            y_tmp = np.take(y, idx)
 
-        results.update({str(X_length_count):metrics})
-        X_length_count = X_length_count + X_length_inc
+            classifier.fit(X_tmp, y_tmp)
+            y_predicted = classifier.predict(X_test)
+
+            metrics = utils.binary_classification_metrics(y_test, y_predicted)
+            print(metrics)
+
+            partial_results.append(metrics["f1"])
+
+
+        mean_f1 = np.mean(partial_results)
+        print("The mean is -> %f", mean_f1)
+
+        sdt_f1 = np.std(partial_results, ddof = 1)
+        print("The sdt is -> %f", sdt_f1)
+
+        results.update({str(number_samples):dict(mean_f1=mean_f1, sdt_f1 = sdt_f1)})
+        number_samples = number_samples + X_length_inc
 
     print("Plotting results...")
 
     samples_range = []
-    accuracy = []
-    f1_score = []
+    mean_f1 = []
+    sdt_f1 = []
 
     for key, value in results.items():
         samples_range.append(key)
-        accuracy.append(value["acc"])
-        f1_score.append(value["f1"])
+        mean_f1.append(value["mean_f1"])
+        sdt_f1.append(value["sdt_f1"])
 
     plt.figure()
     plt.title("Learning curve - Decision tree")
     plt.xlabel("Training samples")
-    plt.ylabel("Accuracy")
-    plt.plot(samples_range, accuracy)
-
-
-    plt.figure()
-    plt.title("Learning curve - Decision tree")
-    plt.xlabel("Training samples")
-    plt.ylabel("F1-score")
-    plt.plot(samples_range, f1_score)
+    plt.ylabel("F1 score")
+    plt.plot(samples_range, mean_f1)
+    plt.plot(samples_range, sdt_f1)
 
     plt.show()
 
@@ -203,6 +216,8 @@ X, y = load_subtask1_data(file_ixs[:28],
 X_test, y_test = load_subtask1_data(file_ixs[28:],
                                     tokenized_folder=tokenized_dir)
 
+print ("Start time: ", time.strftime("%H:%M:%S"))
+
 cvec = CountVectorizer(ngram_range=(1, 2))
 
 cvec_X = cvec.fit_transform(X)
@@ -211,4 +226,9 @@ cvec_X = cvec_X.toarray()
 cvec_X_test = cvec.transform(X_test)
 cvec_X_test = cvec_X_test.toarray()
 
-learning_curve_dt(cvec_X, y, cvec_X_test, y_test)
+classifier = DecisionTreeClassifier(criterion='gini', max_depth=25, max_leaf_nodes=None, min_samples_leaf=3, min_samples_split=4)
+#classifier = GradientBoostingClassifier()
+
+calculate_learning_curve(classifier, cvec_X, y, cvec_X_test, y_test)
+
+print ("End time", time.strftime("%H:%M:%S"))
