@@ -55,12 +55,12 @@ def calculate_learning_curve(classifier, X, y, X_test, y_test):
 
 
         mean_f1 = np.mean(partial_results)
-        print("The mean is -> %f", mean_f1)
+        print("The mean is -> ", mean_f1)
 
-        sdt_f1 = np.std(partial_results, ddof = 1)
-        print("The sdt is -> %f", sdt_f1)
+        sdt_f1 = np.std(partial_results, ddof=1)
+        print("The sdt is -> ", sdt_f1)
 
-        results.update({str(number_samples):dict(mean_f1=mean_f1, sdt_f1 = sdt_f1)})
+        results.update({str(number_samples):dict(mean_f1=mean_f1, sdt_f1=sdt_f1)})
         number_samples = number_samples + X_length_inc
 
     print("Plotting results...")
@@ -74,16 +74,30 @@ def calculate_learning_curve(classifier, X, y, X_test, y_test):
         mean_f1.append(value["mean_f1"])
         sdt_f1.append(value["sdt_f1"])
 
-    plt.figure()
-    plt.title("Learning curve - Decision tree")
-    plt.xlabel("Training samples")
-    plt.ylabel("F1 score")
-    plt.plot(samples_range, mean_f1)
-    plt.plot(samples_range, sdt_f1)
+    plt.figure(figsize=(12, 9))
+    ax = plt.subplot(111)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
+    # Use matplotlib's fill_between() call to create error bars. Use the dark blue "#3F5D7D" color.
+    plt.fill_between(samples_range, np.array(mean_f1) - np.array(sdt_f1),
+                     np.array(mean_f1) + np.array(sdt_f1), color="#3F5D7D")
+
+    # Plot the means as a white line
+    plt.plot(samples_range, mean_f1, color="white", lw=2)
+
+    plt.title("Learning curve - GradientBoosting", fontsize=22)
+    plt.ylabel("F1 score", fontsize=16)
+    plt.xlabel("Training samples", fontsize=16)
 
     plt.show()
 
     print(results)
+    print("mean = ", mean_f1)
+    print("sdt = ", sdt_f1)
+    print("training_samples = ", samples_range)
     return results
 
 
@@ -161,52 +175,6 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
 
     plt.legend(loc="best")
     return plt
-
-# #digits = load_digits()
-# #X, y = digits.data, digits.target
-#
-# file_ixs = list(range(39))
-# X, y = load_subtask1_data(file_ixs[:20],
-#                           tokenized_folder=tokenized_dir)
-# #X_test, Y_test = load_subtask1_data(file_ixs[20:],
-# #                                    tokenized_folder=tokenized_dir)
-#
-# cvec = CountVectorizer(ngram_range=(1, 2))
-#
-# cvec_X = cvec.fit_transform(X)
-# cvec_X = cvec_X.toarray()
-#
-# #cvec_X_test = cvec.transform(X_test)
-# #cvec_X_test = cvec_X_test.toarray()
-#
-# #cv_kwargs = dict(n_jobs=n_jobs,
-# #                 X=cvec_X, Y=Y)
-#
-#
-# title = "Learning Curves (Naive Bayes)"
-# # Cross validation with 100 iterations to get smoother mean test and train
-# # score curves, each time with 20% data randomly selected as a validation set.
-# cv = ShuffleSplit(n_splits=100, test_size=0.2, random_state=0)
-# estimator = GaussianNB()
-# print("Starting plot learning curve - GaussianNB")
-# plot_learning_curve(estimator, title, cvec_X, y, ylim=(0.7, 1.01), cv=cv, n_jobs=1)
-#
-# title = "Learning Curves (SVM, RBF kernel, $\gamma=0.001$)"
-# # SVC is more expensive so we do a lower number of CV iterations:
-# # cv = ShuffleSplit(n_splits=1, test_size=0.2, random_state=0)
-# # estimator = SVC(gamma=0.001)
-# # print("Starting plot learning curve - SVC")
-# # plot_learning_curve(estimator, title, cvec_X, y, (0.7, 1.01), cv=cv, n_jobs=1)
-#
-#
-# title = "Learning Curves (Decision Tree)"
-# cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
-# estimator = DecisionTreeClassifier()
-# print("Starting plot learning curve - DecisionTree")
-# plot_learning_curve(estimator, title, cvec_X, y, (0.7, 1.01), cv=cv, n_jobs=1)
-#
-# print("Let's show it")
-# plt.show()
 
 
 # total of 39
