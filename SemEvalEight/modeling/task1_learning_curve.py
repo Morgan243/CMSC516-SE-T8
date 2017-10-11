@@ -115,12 +115,13 @@ def calculate_learning_curve(classifier, X, y, X_test, y_test):
 # total of 39
 # we took 70% of the files for training, and 30% for testing.
 file_ixs = list(range(39))
+
+print ("Start time: ", time.strftime("%H:%M:%S"))
+
 X, y = load_subtask1_data(file_ixs[:28],
                           tokenized_folder=tokenized_dir)
 X_test, y_test = load_subtask1_data(file_ixs[28:],
                                     tokenized_folder=tokenized_dir)
-
-print ("Start time: ", time.strftime("%H:%M:%S"))
 
 cvec = CountVectorizer(ngram_range=(1, 2))
 
