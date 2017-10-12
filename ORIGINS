@@ -1,7 +1,5 @@
-If you are using 3rd party code or data, please make this very clear by keeping that content in directories
-separate from your own, and by clearly documenting the origins of this code or data in a plain text file
-called ORIGINS that is included in each 3rd party directory. Each 3rd party source should have its own
-separate directory. These guidelines also apply to Semeval task descriptions and data.  If you modify third
-party code keep that in a separate directory as well, and clearly indicate in the comments to that program
-where your modifications begin and end. All code and documentation that you submit as being authored
-by your team must be completely and only authored by members of your team.
+Data loading code for tasks (loaders.load_subtask*) are based on the code provided
+ with the SemEval 2018 dataset. Minor modifications were made to better suit our needs.
+
+ Scikit-learn, Keras, and PyTorch documentation were referenced throughout, so some
+ code may be similar to various examples from these projects.
