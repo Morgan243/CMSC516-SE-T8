@@ -15,16 +15,14 @@ pushd .
 
 cd $INSTALL_PATH
 
-echo "Continue!"
 #sudo apt-get install python3-pip build-essential libssl-dev libffi-dev python3-dev
 
+echo "Creating virtual environment"
 python3 -m venv ./venv
 
+echo "Activating new virtual environment"
 source ./venv/bin/activate
 
-pip install numpy
-pip install pandas keras theano scikit-learn
-
-
+echo "Install the SemEval Task 8 Package"
 python ./setup.py develop
 

@@ -1,3 +1,5 @@
+import time
+import pickle
 import numpy as np
 import torch
 from torch import nn
@@ -75,26 +77,29 @@ class Task1TorchRNN(nn.Module):
     def forward(self, in_seq, hidden):
         # Run embeddings for the sequence through LSTM layers
         emb = self.embeddings_layer(in_seq)
-        output, hidden = self.lstm(emb, hidden)
+        output, hidden = self.lstm(emb, #.view(len(in_seq), 1, -1),
+                                   hidden)
 
         # Output is in shape (sequence, batch, features)
         # Take the last output in the sequence, shape of (1, batch_size, hidden feature dim)
-        last = F.dropout(output[-1, :, :], .5)
+        #last = F.dropout(output[-1, :, :], .5)
+        last = F.dropout(output[-1, :, :], .1)
+        nonlin_out = self.lin_decode_out_bn(self.lin_decode_out(last))
 
         # Affinity Map -> BatchNorm -> DropOut -> NonLinearity
-        lin_out = self.nonlin(F.dropout(self.lin_decode_bn(self.lin_decode(last)), .5))
+        #lin_out = self.nonlin(F.dropout(self.lin_decode_bn(self.lin_decode(last)), .5))
 
-        nonlin_out = self.lin_decode_out_bn(self.lin_decode_out(lin_out))
+        #nonlin_out = self.lin_decode_out_bn(self.lin_decode_out(lin_out))
         pred = self.output_layer(nonlin_out)
 
         return pred, hidden
 
 def train(model, train_sequences, train_targets,
           cv_sequences=None, cv_targets=None,
-          lr=0.00003, weight_decay=0.0039,
+          lr=0.003, weight_decay=0.0037,
           n_epochs=200,
           batch_size=64,
-          patience=5):
+          patience=9):
 
     if torch.cuda.is_available():
         # Data on device
@@ -104,6 +109,7 @@ def train(model, train_sequences, train_targets,
         cv_targets = cv_targets.cuda()
         model.cuda()
 
+    performance_history = list()
     best_val_loss = 100.0
     best_val_acc  = 0.0
     impatience    = 0
@@ -131,11 +137,12 @@ def train(model, train_sequences, train_targets,
         if impatience > patience:
             break
 
-        cv_every     = 3
+        cv_every     = 1
         n_cv_batches = 64
 
         total_loss   = 0
         total_acc    = 0
+        total_f1     = 0
         cnt          = 0
         crnt_idx     = 0
 
@@ -149,7 +156,7 @@ def train(model, train_sequences, train_targets,
             optimizer.zero_grad()
 
             # Run forward pass, getting the output and hidden state
-            output, hidden = model(seq.view(-1, batch_size),
+            output, hidden = model(seq.permute(1, 0), #.view(-1, batch_size),
                                    model.init_hidden(batch_size))
 
             # Calc loss
@@ -168,6 +175,7 @@ def train(model, train_sequences, train_targets,
             predictions = output.squeeze().round().data.cpu().numpy()
             actuals     = y.data.cpu().numpy()
             total_acc  += accuracy_score(actuals, predictions)
+            total_f1   += f1_score(actuals, predictions)
 
             total_loss += loss.data
             cnt        += 1
@@ -175,30 +183,35 @@ def train(model, train_sequences, train_targets,
 
         epoch_train_loss = (total_loss[0]/float(cnt))
         epoch_train_acc = (total_acc/float(cnt))
+        epoch_train_f1 = (total_f1/float(cnt))
 
-        print("[%d/%d * %d] train loss: %.4f; train acc: %.3f"
-              % ((e+1), n_epochs, cnt,
-                 epoch_train_loss,
-                 epoch_train_acc))
 
         # Every few iterations, do cross-validation check
-        if (e%cv_every == 0) and cv_sequences is not None:
+        if ((e + 1)%cv_every == 0) and cv_sequences is not None:
             # Exit training mode
             model.eval()
 
             val_acc = 0.
+            val_f1  = 0.
             val_loss = 0.
 
-            for idx in np.random.random_integers(0, len(cv_sequences) - 128, n_cv_batches):
+            #for idx in np.random.random_integers(0, len(cv_sequences) - 128, n_cv_batches):
+            n_cv_batches = 0
+            for idx in range(0, len(cv_sequences) - 128):
                 # Run model and track performance
                 output, _ = model(cv_sequences[idx:idx+128].view(-1, 128), model.init_hidden(128))
                 val_loss += loss_func(output.squeeze(), cv_targets[idx:idx+128]).data.mean()
                 predictions = output.squeeze().round().data.cpu().numpy()
                 actuals = cv_targets[idx:idx+128].data.cpu().numpy()
                 val_acc += accuracy_score(actuals, predictions)
+                val_f1  += f1_score(actuals, predictions)
+                n_cv_batches += 1
 
             # return to training mode
             model.train()
+            val_loss = val_loss/n_cv_batches
+            val_acc = val_acc/n_cv_batches
+            val_f1 = val_f1/n_cv_batches
 
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
@@ -206,25 +219,57 @@ def train(model, train_sequences, train_targets,
                 impatience    = 0
             else:
                 impatience += 1
-            print("[%d] VAL LOSS: %.5f, VAL ACC: %.3f" %(impatience,
-                                                         val_loss/n_cv_batches,
-                                                         val_acc/n_cv_batches))
+            print("[%d] VAL LOSS: %.5f, VAL ACC: %.3f, VAL F1: %.3f"
+                  %(impatience,
+                    val_loss,
+                    val_acc,
+                    val_f1))
 
-    return best_val_loss/n_cv_batches, best_val_acc/n_cv_batches
+            #if best_val_acc < 0.59 and any(pg['lr'] > 0.0005
+            #                       for pg in optimizer.param_groups):
+            #if e == 25:
+            if False:
+                print("!!!Reducing learning rate!!!")
+                for pg in optimizer.param_groups:
+                    #pg['lr'] = 0.0005
+                    pg['lr'] /= 2.
+
+            performance_history.append(dict(train_loss=epoch_train_loss,
+                                            train_acc=epoch_train_acc,
+                                            train_f1=epoch_train_f1,
+                                            val_loss=val_loss/n_cv_batches,
+                                            val_acc=val_acc/n_cv_batches,
+                                            val_f1=val_f1/n_cv_batches))
+
+        #print("[%d/%d][%d batches of %d] train loss: %.4f; train acc: %.3f"
+        #      % ((e+1), n_epochs, cnt, batch_size,
+        print("[%d/%d] train loss: %.4f; train acc: %.3f"
+                % ((e+1), n_epochs,
+                 epoch_train_loss,
+                 epoch_train_acc))
+
+
+    return performance_history
+    #return best_val_loss/n_cv_batches, best_val_acc/n_cv_batches
 
 def run():
     np.random.seed(42)
     file_ixs = list(range(39))
     np.random.shuffle(file_ixs)
 
-    X, Y = load_subtask1_data(file_ixs[:25])
-    X_test, Y_test = load_subtask1_data(file_ixs[25:35])
+    X, Y = load_subtask1_data(file_ixs[:20])
+    X_test, Y_test = load_subtask1_data(file_ixs[20:30])
 
+    # Turn sentences into sequences of integers, with each integer representing
+    # a word. Only the top occuring nb_words are kept
     tokenizer, sequences = preprocessing.tokenize_texts(X, nb_words=1000)
 
+    sequences = pad_sequences(sequences, maxlen=50)
+
+    # Tokenizer does conversion on new texts - treat test as unseen
     test_sequences = tokenizer.texts_to_sequences(X_test)
     # TODO: replace with pad_packed_sequence in torch?
-    test_sequences = pad_sequences(test_sequences, maxlen=100)
+    test_sequences = pad_sequences(test_sequences, maxlen=50)
 
     np_embeddings = loaders.load_glove_wiki_embedding(tokenizer.word_index)
 
@@ -233,7 +278,12 @@ def run():
     torch_Y = torch.from_numpy(np.array(Y).astype('float32'))
     torch_Y = Variable(torch_Y)
 
-    torch_sequences = torch.LongTensor(sequences.astype('long'))
+    #torch_sequences = torch.LongTensor(np.array([np.array(s).astype('int')
+    #                                             for s in sequences]))
+    #torch_sequences = [torch.LongTensor(np.array(s).astype('long'))
+    #                        for s in sequences]
+    # Need to pad if doing this way
+    torch_sequences = torch.LongTensor(np.array(sequences).astype('long'))
     var_torch_sequences = Variable(torch_sequences)
 
 
@@ -246,13 +296,26 @@ def run():
 
 
     # Try various learning rates
-    res = {lr: train(Task1TorchRNN(np_embeddings, n_lstm_layers=2, hidden_dim=30),
-                     var_torch_sequences, torch_Y,
-                     var_torch_test_sequences, torch_Y_test,
-                     lr=lr)
-            for lr in [0.0025, 0.003, 0.005, 0.01, 0.001] }
+    res = dict()
+    for lr in [0.001, 0.0009, 0.0011]:#[0.0001, 0.00017, 0.00025, 0.0035]:
+        print("="*20)
+        print(lr)
+        res[lr] = train(Task1TorchRNN(np_embeddings, n_lstm_layers=2, hidden_dim=10),
+                                      var_torch_sequences, torch_Y,
+                                      var_torch_test_sequences, torch_Y_test,
+                                      lr=lr, weight_decay=0.0031)
 
-    print(res)
+        print(max([perf['val_acc'] for perf in res[lr]]))
+
+    for lr, r in res.items():
+        print("lr: %f" % lr)
+        print(max([perf['val_acc'] for perf in r]))
+
+    fname = './task1_lstm_torch_results_%d.pkl' % int(time.time())
+    print("Saving results to %s" % fname)
+    with open(fname, 'wb') as f:
+        pickle.dump(res, f)
+    #print(res)
 
 if __name__ == """__main__""":
     run()

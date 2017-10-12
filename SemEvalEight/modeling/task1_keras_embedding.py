@@ -1,3 +1,4 @@
+# Author: Morgan Stuart
 import time
 import os
 #os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"

@@ -1,3 +1,5 @@
+Author: Morgan Stuart
+
 ####
 # Published Baselines
 Models are measured using the F1 Score - the harmonic mean of precision and recall. The authors

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-TASK_8_PATH=($pwd)
+# Author: Morgan Stuart
+
+TASK_8_PATH=$(pwd)
 pushd .
 
 cd $TASK_8_PATH/SemEvalEight/modeling
@@ -11,6 +13,11 @@ source ./venv/bin/activate
 # should compile your program/s and run them. Any file names or other parameter settings must be made
 # in this script and not in your code. Do not hard code file or directory names in source code files.  
 export THEANO_FLAGS="mode=FAST_RUN,device=gpu,floatX=float32"
+
+# REQUIRED: Locations of the data
+export SEMEVAL_8_DATA="$TASK_8_PATH/data"
+export STUCCO_AUTO_LABELED="$TASK_8_PATH/ext_data/stucco_corpus"
+export EMBEDDINGS_DIR="$TASK_8_PATH/ext_data/embeddings"
 
 
 echo "Training ML-Models on unigram and bi-gram bag-of-words"

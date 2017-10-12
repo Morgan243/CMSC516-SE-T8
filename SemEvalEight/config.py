@@ -3,10 +3,12 @@ import os
 # Todo: setup a real plaintext config?
 
 ###----
-# Hardcode data dirs if wanting to avoid env vars
-semeval8_data_dir = ''
-stucco_corpus_dir = ''
-embeddings_dir = ''
+# Hardcode data dirs if wanting to avoid use of env vars
+semeval8_data_dir = '/home/morgan/ownCloud/Classes/NLP/semeval_task_8/data/'
+ext_data_dir = '/home/morgan/Projects/NLP-Semeval-T8/ext_data'
+eval_data_dir = '/home/morgan/Projects/NLP-Semeval-T8/data'
+stucco_corpus_dir = os.path.join(ext_data_dir, 'stucco_corpus')
+embeddings_dir = os.path.join(ext_data_dir, 'embeddings')
 
 ###----
 # From env vars
@@ -32,3 +34,4 @@ if embeddings_dir is None:
 
 # Useful paths
 tokenized_dir = os.path.join(semeval8_data_dir, 'tokenized')
+brown_ext_dir = os.path.join(semeval8_data_dir, 'brown_ext_training_set')
