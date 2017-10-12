@@ -11,6 +11,8 @@ case "$choice" in
     n|N) echo "Exiting..."; exit 0;
 esac
 
+#TODO: check if venv exists?
+
 pushd .
 
 cd $INSTALL_PATH
@@ -25,7 +27,7 @@ source ./venv/bin/activate
 
 echo "Installing dependencies"
 # Sometimes setup script with 'develop' doesn't install depends?
-pip install numpy pandas theano keras sklearn
+pip install numpy pandas theano keras sklearn tensorflow
 
 # Pytorch for python 3.6
 #pip3 install http://download.pytorch.org/whl/cu80/torch-0.2.0.post3-cp36-cp36m-manylinux1_x86_64.whl

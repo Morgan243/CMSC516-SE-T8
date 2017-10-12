@@ -14,6 +14,7 @@ cd $TASK_8_PATH/SemEvalEight/modeling
 # should compile your program/s and run them. Any file names or other parameter settings must be made
 # in this script and not in your code. Do not hard code file or directory names in source code files.  
 export THEANO_FLAGS="mode=FAST_RUN,device=gpu,floatX=float32"
+export KERAS_BACKEND="theano"
 
 # REQUIRED: Locations of the data
 export SEMEVAL_8_DATA="$TASK_8_PATH/data"
