@@ -4,7 +4,7 @@
 INSTALL_PATH=$(pwd)
 
 echo "This script will install a virtual environment here:"
-echo "$INSTALL_PATH"
+echo "$INSTALL_PATH/venv"
 
 read -p "Continue (y/n)?" choice
 case "$choice" in
