@@ -1,6 +1,7 @@
 Author: Morgan Stuart
 
 System Prerequisites:
+- An internet connection to download python packages
 - Python3 (available in the path as python3)
 - Python3 virtual environments library installed
 - Python3 Pip

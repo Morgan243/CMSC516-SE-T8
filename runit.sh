@@ -27,12 +27,15 @@ echo "-----------------------"
 echo "Training ML-Models on unigram and bi-gram bag-of-words"
 echo "------------------------------------------"
 echo "-->Running original train set"
-python task1_bag_of_words.py --eval-best
+python task1_bag_of_words.py --eval-best \
+                             --model-type nb,dt,gb,rf
 
 echo ""
 echo "------------------------------------------"
 echo "-->Running original+auto-labeled train set"
-python task1_bag_of_words.py --eval-best --top-n=10
+python task1_bag_of_words.py --eval-best \
+                             --top-n=10 \
+                             --model-type nb,dt,gb,rf
 
 
 echo ""
