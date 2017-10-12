@@ -23,7 +23,7 @@ python3 -m venv ./venv
 echo "Activating new virtual environment"
 source ./venv/bin/activate
 
-ehco "Installing dependencies"
+echo "Installing dependencies"
 # Sometimes setup script with 'develop' doesn't install depends?
 pip install numpy pandas theano keras
 
