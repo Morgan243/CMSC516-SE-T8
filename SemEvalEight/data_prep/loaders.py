@@ -1,7 +1,9 @@
+# File Author: Morgan Stuart
 import json
 from os import listdir, path
 from SemEvalEight import config
 import numpy as np
+
 
 # Sourced from code provided in Task (generateData), with some aspects modified
 def generate_subtask1_data(file_indices, tokenized_folder=None, verbose=False):
@@ -39,6 +41,7 @@ def generate_subtask1_data(file_indices, tokenized_folder=None, verbose=False):
                         sentence += ' ' + line.split(' ')[0]
                     if line[:-1].split(' ')[-1] != 'O':
                         relevance = 1
+
 
 def generate_subtask2_data(file_indices, tokenized_folder=None,
                            target_encoding_method='basic', verbose=False):
@@ -118,6 +121,7 @@ def load_subtask2_data(file_indices, tokenized_folder=None):
     return list(generate_subtask2_data(file_indices=file_indices,
                                        tokenized_folder=tokenized_folder))
 
+
 def load_subtask1_data(file_indices, tokenized_folder=None):
     """
     Loads raw X, Y into memory, where X samples are senteces and Y samples are integers with
@@ -135,6 +139,7 @@ def load_subtask1_data(file_indices, tokenized_folder=None):
         Y.append(y)
     return np.array(X), np.array(Y)
 
+
 def load_subtask1_brown_auto_labeled(top_n=10):
     auto_label_p =  'top_%d_auto_labeled_from_brown_external_att.txt' % top_n
     p = path.join(config.ext_data_dir, auto_label_p)
@@ -142,6 +147,7 @@ def load_subtask1_brown_auto_labeled(top_n=10):
     X_auto = open(p, encoding='utf-8').readlines()
     Y_auto = np.ones(len(X_auto))
     return X_auto, Y_auto
+
 
 def load_stucco_annotations(full_corpus_path=None):
     if full_corpus_path is None:
@@ -196,14 +202,19 @@ def load_glove_wiki_embedding(word_index,
     print("Loaded embedding of shape %s" % str(embedding_matrix.shape))
     return embedding_matrix
 
+
 if __name__ == """__main__""":
 
-    t = list(generate_subtask2_data([0]))
-
-    load_stucco_annotations()
-
+    print("Testing load functions")
+    print("Loading subtask 1")
     X, Y = load_subtask1_data(list(range(10)),
                               tokenized_folder='/home/morgan/ownCloud/Classes/NLP/semeval_task_8/data/tokenized/')
-    print(X)
-    print(Y)
-    print("done")
+    print("\tDone")
+
+    print("Loading subtask 2")
+    t = list(generate_subtask2_data([0]))
+    print("\tDone")
+
+    print("Loading stucco data")
+    stucco = load_stucco_annotations()
+    print("\tDone")

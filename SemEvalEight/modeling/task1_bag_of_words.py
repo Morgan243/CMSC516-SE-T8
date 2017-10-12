@@ -26,6 +26,7 @@ def grid_search(model, param_grid,
     return fit_m
 
 def load_train_and_test_bow(train_ixes, test_ixes,
+                            top_n_to_inc=None,
                             include_auto_labeled=None):
     # total of 39
     X, Y = load_subtask1_data(train_ixes,
@@ -33,8 +34,8 @@ def load_train_and_test_bow(train_ixes, test_ixes,
 
     #X_auto = open(os.path.join(ext_data_dir,
     #                           'top_3_auto_labeled_from_brown_external.txt')).readlines()
-    if include_auto_labeled is not None:
-        X_auto, Y_auto = load_subtask1_brown_auto_labeled()
+    if top_n_to_inc is not None:
+        X_auto, Y_auto = load_subtask1_brown_auto_labeled(top_n=top_n_to_inc)
         #p = os.path.join(ext_data_dir, include_auto_labeled)
         #X_auto = open(p, encoding='utf-8').readlines()
         #Y_auto = np.ones(len(X_auto))
@@ -48,7 +49,7 @@ def load_train_and_test_bow(train_ixes, test_ixes,
 
     cvec = CountVectorizer(ngram_range=(1, 2),
                            stop_words='english',
-                           min_df=3)
+                           min_df=0)
 
     cvec_X = cvec.fit_transform(X).toarray()
 
@@ -56,17 +57,18 @@ def load_train_and_test_bow(train_ixes, test_ixes,
 
     return cvec_X, Y, cvec_X_test, Y_test
 
-def run_gridsearch(model_type='dt', n_jobs=2):
+def run_gridsearch(model_type='dt', n_jobs=2, top_n_to_inc=0):
     # Recurse into this if given a list of model types
     if isinstance(model_type, list):
         return {mt: run_gridsearch(mt, n_jobs=n_jobs) for mt in model_type}
 
 
     file_ixs = list(range(39))
-    auto_label_p =  'top_10_auto_labeled_from_brown_external_att.txt'
+    top_n = top_n_to_inc if top_n_to_inc != 0 else None
+    #auto_label_p =  'top_10_auto_labeled_from_brown_external_att.txt'
     cvec_X, Y, cvec_X_test, Y_test = load_train_and_test_bow(train_ixes=file_ixs[:23],
                                                              test_ixes=file_ixs[23:31],
-                                                             include_auto_labeled=auto_label_p)
+                                                             top_n_to_inc=top_n)
 
     cv_kwargs = dict(n_jobs=n_jobs,
                      X=cvec_X, Y=Y)
@@ -83,10 +85,10 @@ def run_gridsearch(model_type='dt', n_jobs=2):
         cv_m = grid_search(DecisionTreeClassifier(),
                            param_grid=dict(
                                criterion=['gini', 'entropy'],
-                               max_depth=[None] + list(range(20, 35, 3)),
-                               max_leaf_nodes=[None] + list(range(9, 22, 2)),
-                               min_samples_leaf=list(range(1, 9, 2)),
-                               min_samples_split=list(range(2, 10, 2))),
+                               max_depth=[None] + list(range(23, 35, 3)),
+                               max_leaf_nodes=[None] + list(range(13, 22, 2)),
+                               min_samples_leaf=list(range(2, 7, 2)),
+                               min_samples_split=list(range(2, 7, 2))),
 
                            **cv_kwargs)
 
@@ -98,7 +100,7 @@ def run_gridsearch(model_type='dt', n_jobs=2):
                                min_samples_leaf=list(range(2, 4, 1)),
                                min_samples_split=list(range(2, 5, 2)),
 
-                               learning_rate=np.arange(0.5, 1.5, 0.33),
+                               learning_rate=np.arange(0.7, 1.5, 0.33),
                                            n_estimators=range(100, 251, 50)),
                            **cv_kwargs)
 
@@ -111,7 +113,8 @@ def run_gridsearch(model_type='dt', n_jobs=2):
 
     elif model_type == 'nb':
         cv_m = grid_search(MultinomialNB(),
-                           param_grid=dict(alpha=np.arange(.1, 3.5, .35)),
+                           param_grid=dict(alpha=[10**a for a in range(-3, 4, 1)]),
+                           #[.5, 1.5, 3.5, 9, 17, 25]),#np.arange(.1, 3.5, .35)),
                                             **cv_kwargs)
     else:
         raise ValueError("No model type %s" % model_type)
@@ -154,30 +157,81 @@ def compare_auto_label():
     metrics = utils.binary_classification_metrics(Y_test, preds)
     print(metrics)
 
+
+
+def evaluate_models_on_holdout(models_to_test, top_n_to_inc=None):
+    ixes=list(range(39))
+    train_X, train_Y, test_X, test_Y = load_train_and_test_bow(train_ixes=ixes[:31],
+                                                               test_ixes=ixes[31:],
+                                                               top_n_to_inc=top_n_to_inc)
+    metrics = dict()
+    for m_name, m in models_to_test:
+        print("Running %s" % str(m_name))
+        fit_m = m.fit(train_X, train_Y)
+        preds = fit_m.predict(test_X)
+        metrics[m_name] = utils.binary_classification_metrics(test_Y, preds.round())
+    return metrics
+
+def load_best_bow_ML(model_selection):
+    models = list()
+
+    if 'dt' in model_selection:
+        dt_args = {'criterion': 'gini',
+         'max_depth': 25,
+         'max_leaf_nodes': None,
+         'min_samples_leaf': 3,
+         'min_samples_split': 4}
+        models.append(('dt', DecisionTreeClassifier(**dt_args)))
+
+    if 'nb' in model_selection:
+        nb_args = {'alpha': 3.5}
+        models.append(('nb', MultinomialNB(**nb_args)))
+
+    if 'rf' in model_selection:
+        rf_args = {'max_depth': 34,
+                   'min_samples_split': 38,
+                   'n_estimators': 25}
+        models.append(('rf', RandomForestClassifier(**rf_args)))
+
+    if 'gb' in model_selection:
+        gb_args = dict(n_estimators=170, max_depth=5,
+                    learning_rate=0.5,
+                    min_samples_leaf=3, min_samples_split=4)
+        models.append(('gb', GradientBoostingClassifier(**gb_args)))
+
+    return models
+
 if __name__ == """__main__""":
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-path",
                         help="Output file for serialized results",
                         default='metrics.pkl',
                         type=str)
+    parser.add_argument('--n-jobs', default=2,
+                        type=int)
+    parser.add_argument('--top-n', default=0,
+                        type=int)
     parser.add_argument('--model-type', type=str,
                         default='nb',
                         help='One of, or multiple comma separated, [nb, dt, rf, gb] ')
+    parser.add_argument('--eval-best', action='store_true',
+                        default=False)
+
     args = parser.parse_args()
     models = args.model_type.split(',')
 
-    print("Running %s" % models)
+    if args.eval_best:
+        print(models)
+        model_objs = load_best_bow_ML(models)
+        print(model_objs)
+        eval_res = evaluate_models_on_holdout(model_objs, top_n_to_inc=args.top_n if args.top_n != 0 else None)
+        print(eval_res)
+    else:
 
-    mt = [
-        'nb',
-        'dt',
-        'rf',
-        'gb'
-    ]
-    #compare_auto_label()
-    metrics = run_gridsearch(model_type=models, n_jobs=6)
-    print("")
-    print(metrics)
+        print("Running %s" % models)
+        metrics = run_gridsearch(model_type=models, n_jobs=args.n_jobs)
+        print("")
+        print(metrics)
 
-    with open(args.output_path, 'wb') as f:
-        pickle.dump(metrics, f)
+        with open(args.output_path, 'wb') as f:
+            pickle.dump(metrics, f)
