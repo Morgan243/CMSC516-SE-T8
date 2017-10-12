@@ -1,0 +1,19 @@
+Author: Morgan Stuart
+
+System Prerequisites:
+- Python3 (available in the path as python3)
+- Python3 virtual environments library installed
+- Python3 Pip
+
+On ubuntu-based systems, you'll probably need these packages:
+python3-venv python3-pip build-essential libssl-dev libffi-dev python3-dev
+
+Python dependencies are handled in the setup script for this package and should be auto-installed
+when the package is installed into the virtual environment. See instructions below.
+
+Instructions:
+(1) Change directory to the top-level project directory (where this file is located)
+(2) Execute 'install.sh', confirm that the proposed location of the virtual environment is okay.
+    It defaults ./venv in the top-level project directory
+    - This script will create a virtual environment, then install this package into it
+(3) Execute 'runit.sh' to execute experiments
