@@ -9,4 +9,4 @@ setup(name='CMSC516-SE-Eight',
       packages=['SemEvalEight'],#['modeling', 'data_prep'],
       requires=['numpy', 'pandas', 'keras',
                 'lasagne', 'theano', 'sklearn',
-                'pytorch', 'attrs'])
+                'attrs', 'scikit-learn'])

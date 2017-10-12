@@ -23,6 +23,16 @@ python3 -m venv ./venv
 echo "Activating new virtual environment"
 source ./venv/bin/activate
 
+ehco "Installing dependencies"
+# Sometimes setup script with 'develop' doesn't install depends?
+pip install numpy pandas theano keras
+
+# Pytorch for python 3.6
+#pip3 install http://download.pytorch.org/whl/cu80/torch-0.2.0.post3-cp36-cp36m-manylinux1_x86_64.whl
+
+#Pytorch for python 3.5
+#pip3 install http://download.pytorch.org/whl/cu80/torch-0.2.0.post3-cp35-cp35m-manylinux1_x86_64.whl
+
 echo "Install the SemEval Task 8 Package"
 python ./setup.py develop
 

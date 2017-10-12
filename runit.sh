@@ -4,9 +4,10 @@
 TASK_8_PATH=$(pwd)
 pushd .
 
-cd $TASK_8_PATH/SemEvalEight/modeling
 
 source ./venv/bin/activate
+
+cd $TASK_8_PATH/SemEvalEight/modeling
 
 # FROM PROJECT DOCS:
 # All projects must be run from the command line using a bash shell script named runit.sh – this script
