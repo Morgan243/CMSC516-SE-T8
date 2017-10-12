@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+# Author: Morgan Stuart
 
-INSTALL_PATH=($pwd)
+INSTALL_PATH=$(pwd)
 
 echo "This script will install a virtual environment here:"
 echo "$INSTALL_PATH"

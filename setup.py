@@ -1,3 +1,5 @@
+#Author: Morgan Stuart
+
 from setuptools import setup
 setup(name='CMSC516-SE-Eight',
       version='0.1',
