@@ -122,8 +122,8 @@ def grid_search(embeddings,
 
 
 def load_data(embedding_dim=100, return_holdout=False):
-    file_ixs = list(range(39))
-    X, Y = load_subtask1_data(file_ixs[:23])
+    file_ixs = list(range(65))
+    X, Y = load_subtask1_data(file_ixs[:33])
 
     # Add in auto labeled
     X_auto, Y_auto = load_subtask1_brown_auto_labeled()
@@ -137,7 +137,7 @@ def load_data(embedding_dim=100, return_holdout=False):
     Y = Y[ix]
 
 
-    X_test, Y_test = load_subtask1_data(file_ixs[23:31])
+    X_test, Y_test = load_subtask1_data(file_ixs[33:40])
     test_ix = list(range(len(X_test)))
     np.random.shuffle(test_ix)
 

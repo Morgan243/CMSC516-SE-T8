@@ -4,7 +4,8 @@ import os
 
 ###----
 # Hardcode data dirs if wanting to avoid use of env vars
-semeval8_data_dir = '/home/morgan/ownCloud/Classes/NLP/semeval_task_8/data/'
+#semeval8_data_dir = '/home/morgan/ownCloud/Classes/NLP/semeval_task_8/data/'
+semeval8_data_dir = '/home/morgan/ownCloud/Classes/NLP/semeval_task_8/data/training_material/data'
 ext_data_dir = '/home/morgan/Projects/NLP-Semeval-T8/ext_data'
 eval_data_dir = '/home/morgan/Projects/NLP-Semeval-T8/data'
 stucco_corpus_dir = os.path.join(ext_data_dir, 'stucco_corpus')
@@ -12,9 +13,9 @@ embeddings_dir = os.path.join(ext_data_dir, 'embeddings')
 
 ###----
 # From env vars
-semeval8_data_dir = os.environ.get('SEMEVAL_8_DATA', semeval8_data_dir)
-stucco_corpus_dir = os.environ.get('STUCCO_AUTO_LABELED', stucco_corpus_dir)
-embeddings_dir = os.environ.get('EMBEDDINGS_DIR', embeddings_dir)
+#semeval8_data_dir = os.environ.get('SEMEVAL_8_DATA', semeval8_data_dir)
+#stucco_corpus_dir = os.environ.get('STUCCO_AUTO_LABELED', stucco_corpus_dir)
+#embeddings_dir = os.environ.get('EMBEDDINGS_DIR', embeddings_dir)
 
 ###----
 # Check and warn
@@ -34,4 +35,5 @@ if embeddings_dir is None:
 
 # Useful paths
 tokenized_dir = os.path.join(semeval8_data_dir, 'tokenized')
-brown_ext_dir = os.path.join(semeval8_data_dir, 'brown_ext_training_set')
+#brown_ext_dir = os.path.join(semeval8_data_dir, 'brown_ext_training_set')
+brown_ext_dir = os.path.join(semeval8_data_dir, 'additional_plaintext')

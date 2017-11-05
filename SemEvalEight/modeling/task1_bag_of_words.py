@@ -20,6 +20,7 @@ def grid_search(model, param_grid,
                 n_jobs=3, verbose=1):
     cv_m = GridSearchCV(model, n_jobs=n_jobs, verbose=verbose,
                         scoring=make_scorer(scorer),
+                        pre_dispatch=n_jobs,
                         param_grid=param_grid)
 
     fit_m = cv_m.fit(X, Y)
@@ -63,11 +64,11 @@ def run_gridsearch(model_type='dt', n_jobs=2, top_n_to_inc=0):
         return {mt: run_gridsearch(mt, n_jobs=n_jobs) for mt in model_type}
 
 
-    file_ixs = list(range(39))
+    file_ixs = list(range(65))
     top_n = top_n_to_inc if top_n_to_inc != 0 else None
     #auto_label_p =  'top_10_auto_labeled_from_brown_external_att.txt'
-    cvec_X, Y, cvec_X_test, Y_test = load_train_and_test_bow(train_ixes=file_ixs[:23],
-                                                             test_ixes=file_ixs[23:31],
+    cvec_X, Y, cvec_X_test, Y_test = load_train_and_test_bow(train_ixes=file_ixs[:33],
+                                                             test_ixes=file_ixs[38:48],
                                                              top_n_to_inc=top_n)
 
     cv_kwargs = dict(n_jobs=n_jobs,
@@ -85,10 +86,10 @@ def run_gridsearch(model_type='dt', n_jobs=2, top_n_to_inc=0):
         cv_m = grid_search(DecisionTreeClassifier(),
                            param_grid=dict(
                                criterion=['gini', 'entropy'],
-                               max_depth=[None] + list(range(23, 35, 3)),
-                               max_leaf_nodes=[None] + list(range(13, 22, 2)),
-                               min_samples_leaf=list(range(2, 7, 2)),
-                               min_samples_split=list(range(2, 7, 2))),
+                               max_depth=[None] + list(range(24, 30, 3)),
+                               max_leaf_nodes=[None] + list(range(13, 20, 2)),
+                               min_samples_leaf=list(range(2, 5, 2)),
+                               min_samples_split=list(range(2, 5, 2))),
 
                            **cv_kwargs)
 

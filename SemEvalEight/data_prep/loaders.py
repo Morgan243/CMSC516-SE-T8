@@ -29,7 +29,7 @@ def generate_subtask1_data(file_indices, tokenized_folder=None, verbose=False):
         tk_path = path.join(tokenized_folder, fileName)
         with open(tk_path, 'r', encoding='utf-8') as f:
             for line in f:
-                if line == '\n':
+                if '\n' in line and line.strip() == '':
                     if sentence != '':
                         yield sentence, relevance
                     sentence = ''
@@ -122,7 +122,7 @@ def load_subtask2_data(file_indices, tokenized_folder=None):
                                        tokenized_folder=tokenized_folder))
 
 
-def load_subtask1_data(file_indices, tokenized_folder=None):
+def load_subtask1_data(file_indices, tokenized_folder=None, sampe_frac=.7):
     """
     Loads raw X, Y into memory, where X samples are senteces and Y samples are integers with
     Y == 1 indicating a relevant sentence (binary classification).

@@ -53,7 +53,10 @@ def fit_committee(models=None, feature_type='bow'):
 
 def load_raw_from_att_file(glob_path=os.path.join(brown_ext_dir, '*.att')):
     att_files = glob(glob_path)
-    print("Found %d files" % len(att_files))
+    num_files = len(att_files)
+    if num_files == 0:
+        raise ValueError("No ATT files found - make sure you are using the older dataset to use this")
+    print("Found %d files" % num_files)
 
     unlabeld_seq_dict = {os.path.split(file_p)[-1]
                          :[ln.strip()
@@ -64,6 +67,7 @@ def load_raw_from_att_file(glob_path=os.path.join(brown_ext_dir, '*.att')):
 
 def load_raw_from_text(glob_path=os.path.join(brown_ext_dir, '*.txt')):
     txt_files = glob(glob_path)
+    print("Checking %s" % glob_path)
     print("Found %d files" % len(txt_files))
 
     unlabeld_seq_dict = {os.path.split(file_p)[-1]:open(file_p, 'r').read()
@@ -83,9 +87,9 @@ def load_raw_from_text(glob_path=os.path.join(brown_ext_dir, '*.txt')):
 
 def auto_label_provided_external(top_n_per_doc=3):
     # prelabeled setences by them?
-    unlabeled_seq_map = load_raw_from_att_file()
+    #unlabeled_seq_map = load_raw_from_att_file()
 
-    #unlabeled_seq_map = load_raw_from_text()
+    unlabeled_seq_map = load_raw_from_text()
 
     vectorizer = build_train_count_vectorizer(raw_data=None)
 
