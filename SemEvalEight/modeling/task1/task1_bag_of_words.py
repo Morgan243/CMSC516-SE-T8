@@ -7,6 +7,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import BernoulliNB, MultinomialNB
 from sklearn.metrics import f1_score, make_scorer
 import numpy as np
+import pandas as pd
 import os
 import argparse
 
@@ -28,7 +29,8 @@ def grid_search(model, param_grid,
 
 def load_train_and_test_bow(train_ixes, test_ixes,
                             top_n_to_inc=None,
-                            include_auto_labeled=None):
+                            include_auto_labeled=None,
+                            resample=None):
     # total of 39
     X, Y = load_subtask1_data(train_ixes,
                               tokenized_folder=tokenized_dir)
@@ -44,6 +46,17 @@ def load_train_and_test_bow(train_ixes, test_ixes,
         X = np.concatenate([X, X_auto])
         Y = np.concatenate([Y, Y_auto])
 
+    if resample is not None:
+        print("Resample N: %s" % str(resample))
+        # Easiest to just load into a DF for group-by-then-sample
+        _df = pd.DataFrame(X)
+        _df['target'] = Y
+        rs_df = _df.groupby('target').apply(lambda df: df.sample(resample,
+                                                         replace=True))
+        X = rs_df.drop('target', axis=1).values.reshape(-1)
+        Y = rs_df['target'].values.reshape(-1)
+
+
     X_test, Y_test = load_subtask1_data(test_ixes,
                               tokenized_folder=tokenized_dir)
 
@@ -58,18 +71,21 @@ def load_train_and_test_bow(train_ixes, test_ixes,
 
     return cvec_X, Y, cvec_X_test, Y_test
 
-def run_gridsearch(model_type='dt', n_jobs=2, top_n_to_inc=0):
+def run_gridsearch(model_type='dt', n_jobs=2, resample_n=1500, top_n_to_inc=0):
     # Recurse into this if given a list of model types
     if isinstance(model_type, list):
-        return {mt: run_gridsearch(mt, n_jobs=n_jobs) for mt in model_type}
+        return {mt: run_gridsearch(mt, n_jobs=n_jobs, resample_n=resample_n, top_n_to_inc=top_n_to_inc)
+                for mt in model_type}
 
 
     file_ixs = list(range(65))
     top_n = top_n_to_inc if top_n_to_inc != 0 else None
     #auto_label_p =  'top_10_auto_labeled_from_brown_external_att.txt'
-    cvec_X, Y, cvec_X_test, Y_test = load_train_and_test_bow(train_ixes=file_ixs[:33],
-                                                             test_ixes=file_ixs[38:48],
-                                                             top_n_to_inc=top_n)
+    cvec_X, Y, cvec_X_test, Y_test = load_train_and_test_bow(train_ixes=file_ixs[:38],
+                                                             test_ixes=file_ixs[38:50],
+                                                             top_n_to_inc=top_n,
+                                                             resample=resample_n)
+    print("train X shape: %s" % str(cvec_X.shape))
 
     cv_kwargs = dict(n_jobs=n_jobs,
                      X=cvec_X, Y=Y)
@@ -212,6 +228,8 @@ if __name__ == """__main__""":
                         type=int)
     parser.add_argument('--top-n', default=0,
                         type=int)
+    parser.add_argument('--resample-n', default=5000,
+                        type=int)
     parser.add_argument('--model-type', type=str,
                         default='nb',
                         help='One of, or multiple comma separated, [nb, dt, rf, gb] ')
@@ -225,12 +243,15 @@ if __name__ == """__main__""":
         print(models)
         model_objs = load_best_bow_ML(models)
         print(model_objs)
-        eval_res = evaluate_models_on_holdout(model_objs, top_n_to_inc=args.top_n if args.top_n != 0 else None)
+        eval_res = evaluate_models_on_holdout(model_objs,
+                                              top_n_to_inc=args.top_n if args.top_n != 0 else None)
         print(eval_res)
     else:
 
         print("Running %s" % models)
-        metrics = run_gridsearch(model_type=models, n_jobs=args.n_jobs)
+        print("Resample N: %s" % str(args.resample_n))
+        metrics = run_gridsearch(model_type=models, n_jobs=args.n_jobs,
+                                 resample_n=args.resample_n)
         print("")
         print(metrics)
 

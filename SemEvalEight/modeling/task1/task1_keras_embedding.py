@@ -19,6 +19,8 @@ from SemEvalEight.data_prep import loaders
 from SemEvalEight.data_prep import preprocessing
 from SemEvalEight.utils import binary_classification_metrics
 
+from imblearn.over_sampling import RandomOverSampler
+
 def build_keras_embedding_classifier(embeddings, activation='tanh',
                                      optimizer='adam',
                                      hidden_size=20, depth=2,
@@ -36,17 +38,25 @@ def build_keras_embedding_classifier(embeddings, activation='tanh',
     m = keras.models.Sequential()
     m.add(emb)
     for d in range(depth):
-        m.add(kl.Dropout(dropout))
         m.add(kl.LSTM(hidden_size, activation=activation,
                       recurrent_dropout=recurrent_dropout,
+                      dropout=dropout,
                       return_sequences= d != (depth - 1)))
+        #m.add(kl.Dropout(dropout))
 
-    m.add(kl.Dropout(dropout))
-    m.add(kl.Dense(1, activation='sigmoid'))
+    #m.add(kl.Dense(2, activation='sigmoid'))
+    m.add(kl.Dense(2, activation='softmax'))
     keras.optimizers.Adam(lr=lr, decay=decay)
-    m.compile(loss='binary_crossentropy',
+    m.compile(loss='categorical_crossentropy',
               optimizer=optimizer,
               metrics=['accuracy'])
+
+
+    #m.add(kl.Dense(1, activation='sigmoid'))
+    #keras.optimizers.Adam(lr=lr, decay=decay)
+    #m.compile(loss='binary_crossentropy',
+    #          optimizer=optimizer,
+    #          metrics=['accuracy'])
 
     print(m.summary())
     return m
@@ -123,7 +133,7 @@ def grid_search(embeddings,
 
 def load_data(embedding_dim=100, return_holdout=False):
     file_ixs = list(range(65))
-    X, Y = load_subtask1_data(file_ixs[:33])
+    X, Y = load_subtask1_data(file_ixs[:40])
 
     # Add in auto labeled
     X_auto, Y_auto = load_subtask1_brown_auto_labeled()
@@ -137,7 +147,7 @@ def load_data(embedding_dim=100, return_holdout=False):
     Y = Y[ix]
 
 
-    X_test, Y_test = load_subtask1_data(file_ixs[33:40])
+    X_test, Y_test = load_subtask1_data(file_ixs[40:55])
     test_ix = list(range(len(X_test)))
     np.random.shuffle(test_ix)
 
@@ -184,7 +194,7 @@ if __name__ == """__main__""":
                         default=2.5e-7,
                         type=float)
     parser.add_argument('--recurrent-dropout',
-                        default=.5,
+                        default=.25,
                         type=float)
     parser.add_argument('--decay',
                         default=.0035,
@@ -224,8 +234,9 @@ if __name__ == """__main__""":
 
     elif args.grid_search:
         grid_params = build_params_from_grid(activations=['tanh'],
-                                            hidden_size=[15, 20, 25], depth=[4, 5, 6],#range(1, 3),
-                                            lr=[0.0000002], dropout=[.5],
+                                             hidden_size=[15, 20, 25],
+                                             depth=[4, 5, 6],#range(1, 3),
+                                             lr=[0.0000002], dropout=[.5],
                                              decay=[0.0035],
                                              recurrent_dropout=[0.5])
 
@@ -245,25 +256,36 @@ if __name__ == """__main__""":
         uid = uuid.uuid4()
         cb = [EarlyStopping(patience=17),
               TerminateOnNaN(),
-              ReduceLROnPlateau(verbose=1)]
+              ReduceLROnPlateau(verbose=1, patience=3)]
         m = build_keras_embedding_classifier(embeddings=embeddings,
+                                             activation='elu',
                                              lr=args.learning_rate, depth=args.depth,
                                              hidden_size=args.hidden_size,
                                              #lr=2.5e-7, depth=5, hidden_size=20,
                                              decay=args.decay,
                                              recurrent_dropout=args.recurrent_dropout)
+        print("Using random over-sample")
+        rand_os = RandomOverSampler().fit(sequences, Y)
+        os_sequences, os_Y = rand_os.sample(sequences, Y)
 
-        hist = m.fit(sequences, Y, epochs=100, batch_size=128,
-                      validation_data=(test_sequences, Y_test),
+        os_Y_cat = keras.utils.np_utils.to_categorical(os_Y)
+
+        Y_test_cat = keras.utils.np_utils.to_categorical(Y_test)
+
+        hist = m.fit(os_sequences, os_Y_cat, epochs=100, batch_size=128,
+                      validation_data=(test_sequences, Y_test_cat),
                       callbacks=cb)
 
 
-        pred = m.predict(test_sequences).round().astype(int)
+        pred = m.predict(test_sequences)#.round().astype(int)
+        pred = pred[:,1] > 0.5
         metrics = binary_classification_metrics(Y_test, pred)
         print("Dev perf")
         print(metrics)
 
-        holdout_pred = m.predict(holdout_sequences).round().astype(int)
+        holdout_pred = m.predict(holdout_sequences)#.round().astype(int)
+        holdout_pred = holdout_pred[:,1] > 0.5
+
         holdout_metrics = binary_classification_metrics(Y_holdout, holdout_pred)
         print("Holdout perf")
         print(holdout_metrics)
