@@ -6,17 +6,18 @@ import numpy as np
 import pandas as pd
 import argparse
 
-from SemEvalEight.data_prep.loaders import load_subtask1_data
+from SemEvalEight.data_prep.loaders import load_subtask1_data, get_wordnet_pos
 from SemEvalEight.config import tokenized_dir, brown_ext_dir, ext_data_dir
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 
 from nltk.tokenize import sent_tokenize
+import nltk
 from glob import glob
 
 def build_train_count_vectorizer(raw_data=None):
     if raw_data is None:
-        raw_data, _ = load_subtask1_data(list(range(31)))
+        raw_data, _ = load_subtask1_data(list(range(53)))
 
     cvec = CountVectorizer(ngram_range=(1, 2),
                            stop_words='english',
@@ -36,7 +37,7 @@ def fit_committee(models=None, feature_type='bow'):
                                                 max_leaf_nodes=None, min_samples_leaf=3,
                                                 min_samples_split=4))
 
-    raw_X, Y = load_subtask1_data(list(range(31)))
+    raw_X, Y = load_subtask1_data(list(range(53)))
     if feature_type == 'bow':
         cvec = CountVectorizer(ngram_range=(1, 2),
                                stop_words='english',
@@ -44,14 +45,14 @@ def fit_committee(models=None, feature_type='bow'):
 
         X = cvec.fit_transform(raw_X).toarray()
 
-
-    vote_clf = VotingClassifier(estimators=[(k, v) for k, v in models.items()],
+    vote_clf = VotingClassifier(estimators=[(k, v) for k, v in models.items()], n_jobs=3,
+                                flatten_transform=False,
                                 voting='soft').fit(X, Y)
 
     return vote_clf
 
 
-def load_raw_from_att_file(glob_path=os.path.join(brown_ext_dir, '*.att')):
+def load_raw_from_sentence_file(glob_path=os.path.join(brown_ext_dir, '*.txt')):
     att_files = glob(glob_path)
     num_files = len(att_files)
     if num_files == 0:
@@ -59,8 +60,7 @@ def load_raw_from_att_file(glob_path=os.path.join(brown_ext_dir, '*.att')):
     print("Found %d files" % num_files)
 
     unlabeld_seq_dict = {os.path.split(file_p)[-1]
-                         :[ln.strip()
-                            for ln in open(file_p, 'r', encoding='utf-8').readlines()]
+                         :[" ".join(nltk.word_tokenize(ln.strip()))  for ln in open(file_p, 'r', encoding='utf-8').readlines()]
                             for file_p in att_files}
     return unlabeld_seq_dict
 
@@ -74,11 +74,17 @@ def load_raw_from_text(glob_path=os.path.join(brown_ext_dir, '*.txt')):
                             for file_p in txt_files}
     blacklist = set(['<', '>', 'image:'])
     clean_seq_map = dict()
+    lemmatizer = nltk.wordnet.WordNetLemmatizer()
+
     for name, raw_txt in unlabeld_seq_dict.items():
         sequences = sent_tokenize(raw_txt)
-        tok_seq = [nltk.word_tokenize(s)
-                   for s in sequences if not any(bl in s
-                                                 for bl in blacklist)]
+        tok_seq = [[lemmatizer.lemmatize(wrd, pos=get_wordnet_pos(pos))
+                    for wrd, pos in nltk.pos_tag(nltk.word_tokenize(sent))]
+                          for sent in sequences]
+
+        #tok_seq = [nltk.word_tokenize(s)
+        #           for s in sequences if not any(bl in s
+        #                                         for bl in blacklist)]
         clean_seq = [" ".join(s) for s in tok_seq]
         clean_seq_map[name] = np.array(clean_seq)
 
@@ -87,7 +93,7 @@ def load_raw_from_text(glob_path=os.path.join(brown_ext_dir, '*.txt')):
 
 def auto_label_provided_external(top_n_per_doc=3):
     # prelabeled setences by them?
-    #unlabeled_seq_map = load_raw_from_att_file()
+    #unlabeled_seq_map = load_raw_from_sentence_file()
 
     unlabeled_seq_map = load_raw_from_text()
 

@@ -1,1 +1,1 @@
-from SemEvalEight.modeling import task1_bag_of_words
+from SemEvalEight.modeling.task1 import task1_bag_of_words

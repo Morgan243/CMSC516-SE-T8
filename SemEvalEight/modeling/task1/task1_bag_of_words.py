@@ -11,7 +11,7 @@ import pandas as pd
 import os
 import argparse
 
-from SemEvalEight.data_prep.loaders import load_subtask1_data, load_subtask1_brown_auto_labeled
+from SemEvalEight.data_prep.loaders import load_subtask1_data, load_auto_labeled
 from SemEvalEight.config import tokenized_dir, ext_data_dir
 from SemEvalEight import utils
 
@@ -38,7 +38,8 @@ def load_train_and_test_bow(train_ixes, test_ixes,
     #X_auto = open(os.path.join(ext_data_dir,
     #                           'top_3_auto_labeled_from_brown_external.txt')).readlines()
     if top_n_to_inc is not None:
-        X_auto, Y_auto = load_subtask1_brown_auto_labeled(top_n=top_n_to_inc)
+        #X_auto, Y_auto = load_subtask1_brown_auto_labeled(top_n=top_n_to_inc)
+        X_auto, Y_auto = load_auto_labeled(top_n=top_n_to_inc)
         #p = os.path.join(ext_data_dir, include_auto_labeled)
         #X_auto = open(p, encoding='utf-8').readlines()
         #Y_auto = np.ones(len(X_auto))
@@ -81,8 +82,8 @@ def run_gridsearch(model_type='dt', n_jobs=2, resample_n=1500, top_n_to_inc=0):
     file_ixs = list(range(65))
     top_n = top_n_to_inc if top_n_to_inc != 0 else None
     #auto_label_p =  'top_10_auto_labeled_from_brown_external_att.txt'
-    cvec_X, Y, cvec_X_test, Y_test = load_train_and_test_bow(train_ixes=file_ixs[:38],
-                                                             test_ixes=file_ixs[38:50],
+    cvec_X, Y, cvec_X_test, Y_test = load_train_and_test_bow(train_ixes=file_ixs[:41],
+                                                             test_ixes=file_ixs[41:53],
                                                              top_n_to_inc=top_n,
                                                              resample=resample_n)
     print("train X shape: %s" % str(cvec_X.shape))
@@ -177,9 +178,9 @@ def compare_auto_label():
 
 
 def evaluate_models_on_holdout(models_to_test, top_n_to_inc=None):
-    ixes=list(range(39))
-    train_X, train_Y, test_X, test_Y = load_train_and_test_bow(train_ixes=ixes[:31],
-                                                               test_ixes=ixes[31:],
+    #ixes=list(range(53))
+    train_X, train_Y, test_X, test_Y = load_train_and_test_bow(train_ixes=range(53),
+                                                               test_ixes=range(53,65),
                                                                top_n_to_inc=top_n_to_inc)
     metrics = dict()
     for m_name, m in models_to_test:
@@ -251,7 +252,8 @@ if __name__ == """__main__""":
         print("Running %s" % models)
         print("Resample N: %s" % str(args.resample_n))
         metrics = run_gridsearch(model_type=models, n_jobs=args.n_jobs,
-                                 resample_n=args.resample_n)
+                                 resample_n=args.resample_n,
+                                 top_n_to_inc=args.top_n if args.top_n != 0 else None)
         print("")
         print(metrics)
 

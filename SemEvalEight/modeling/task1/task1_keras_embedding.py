@@ -41,22 +41,31 @@ def build_keras_embedding_classifier(embeddings, activation='tanh',
         m.add(kl.LSTM(hidden_size, activation=activation,
                       recurrent_dropout=recurrent_dropout,
                       dropout=dropout,
+                      #return_sequences=True))
                       return_sequences= d != (depth - 1)))
         #m.add(kl.Dropout(dropout))
 
+    #m.add(kl.Flatten())
     #m.add(kl.Dense(2, activation='sigmoid'))
-    m.add(kl.Dense(2, activation='softmax'))
-    keras.optimizers.Adam(lr=lr, decay=decay)
-    m.compile(loss='categorical_crossentropy',
-              optimizer=optimizer,
-              metrics=['accuracy'])
-
-
-    #m.add(kl.Dense(1, activation='sigmoid'))
+    #m.add(kl.Dense(2, activation='softmax'))
     #keras.optimizers.Adam(lr=lr, decay=decay)
-    #m.compile(loss='binary_crossentropy',
+    #m.compile(loss='categorical_crossentropy',
     #          optimizer=optimizer,
     #          metrics=['accuracy'])
+    #m.add(kl.Dense(256, activation='elu'))
+
+    #m.add(kl.Dropout(dropout))
+    #m.add(kl.Dense(256, activation='elu', activity_regularizer='l1', kernel_initializer='glorot_uniform'))
+    #m.add(kl.Dropout(dropout))
+
+    #m.add(kl.Dense(128, activation='elu'))
+
+    m.add(kl.Dense(1, activation='sigmoid'))
+    if optimizer == 'adam':
+        optimizer = keras.optimizers.Adam(lr=lr, decay=decay)
+    m.compile(loss='binary_crossentropy',
+              optimizer=optimizer,
+              metrics=['accuracy'])
 
     print(m.summary())
     return m
@@ -147,14 +156,14 @@ def load_data(embedding_dim=100, return_holdout=False):
     Y = Y[ix]
 
 
-    X_test, Y_test = load_subtask1_data(file_ixs[40:55])
+    X_test, Y_test = load_subtask1_data(file_ixs[40:53])
     test_ix = list(range(len(X_test)))
     np.random.shuffle(test_ix)
 
     X_test = X_test[test_ix]
     Y_test = Y_test[test_ix]
 
-    tokenizer, sequences = preprocessing.tokenize_texts(X, nb_words=3000)
+    tokenizer, sequences = preprocessing.tokenize_texts(X, nb_words=5000)
     # TODO: Masking implementation rather than padding?
     sequences = pad_sequences(sequences, maxlen=100)
 
@@ -165,7 +174,7 @@ def load_data(embedding_dim=100, return_holdout=False):
                                                    embedding_dim=embedding_dim)
 
     if return_holdout:
-        X_holdout, Y_holdout = load_subtask1_data(file_ixs[31:])
+        X_holdout, Y_holdout = load_subtask1_data(file_ixs[53:])
         holdout_sequences = tokenizer.texts_to_sequences(X_holdout)
         holdout_sequences = pad_sequences(holdout_sequences, maxlen=100)
         return embeddings, sequences, Y, test_sequences, Y_test, holdout_sequences, Y_holdout
@@ -258,40 +267,45 @@ if __name__ == """__main__""":
               TerminateOnNaN(),
               ReduceLROnPlateau(verbose=1, patience=3)]
         m = build_keras_embedding_classifier(embeddings=embeddings,
-                                             activation='elu',
+                                             #activation='elu',
                                              lr=args.learning_rate, depth=args.depth,
                                              hidden_size=args.hidden_size,
                                              #lr=2.5e-7, depth=5, hidden_size=20,
                                              decay=args.decay,
+                                             dropout=args.dropout,
                                              recurrent_dropout=args.recurrent_dropout)
         print("Using random over-sample")
         rand_os = RandomOverSampler().fit(sequences, Y)
         os_sequences, os_Y = rand_os.sample(sequences, Y)
+        print(sequences.shape)
+        print(os_sequences.shape)
 
-        os_Y_cat = keras.utils.np_utils.to_categorical(os_Y)
 
-        Y_test_cat = keras.utils.np_utils.to_categorical(Y_test)
-
-        hist = m.fit(os_sequences, os_Y_cat, epochs=100, batch_size=128,
-                      validation_data=(test_sequences, Y_test_cat),
+        hist = m.fit(os_sequences, os_Y, epochs=100, batch_size=128,
+                      validation_data=(test_sequences, Y_test),
                       callbacks=cb)
 
 
-        pred = m.predict(test_sequences)#.round().astype(int)
-        pred = pred[:,1] > 0.5
+        pred = m.predict(test_sequences).round().astype(int)
+
         metrics = binary_classification_metrics(Y_test, pred)
         print("Dev perf")
         print(metrics)
 
-        holdout_pred = m.predict(holdout_sequences)#.round().astype(int)
-        holdout_pred = holdout_pred[:,1] > 0.5
+        holdout_pred = m.predict(holdout_sequences).round().astype(int)
+
 
         holdout_metrics = binary_classification_metrics(Y_holdout, holdout_pred)
         print("Holdout perf")
         print(holdout_metrics)
 
 
-        hist_df = pd.DataFrame(hist.history)
+        hist_df = (pd.DataFrame(hist.history)
+                   .assign(depth=args.depth, hidden_size=args.hidden_size,
+                           learning_rate=args.learning_rate, decay=args.decay,
+                           dropout=args.dropout, recurrent_dropout=args.recurrent_dropout,
+                           embedding_dim = args.embed_dim)
+                   .assign(**{'dev_%s'%k:v for k, v in metrics.items()}))
 
         if args.metrics_output_path == 'auto':
             p = 'task1_embedding_%s.csv' % str(uid)
