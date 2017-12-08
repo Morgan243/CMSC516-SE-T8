@@ -36,4 +36,4 @@ if embeddings_dir is None:
 # Useful paths
 tokenized_dir = os.path.join(semeval8_data_dir, 'tokenized')
 #brown_ext_dir = os.path.join(semeval8_data_dir, 'brown_ext_training_set')
-brown_ext_dir = os.path.join(semeval8_data_dir, 'additional_plaintext')
+brown_ext_dir = os.path.join(ext_data_dir, 'additional_plaintext_sentences')
